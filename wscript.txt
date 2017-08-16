@@ -1,0 +1,8 @@
+splitrows col: column1 on: '\r\n'
+split col: column1 on: ',' limit: 2 quote: '\"'
+header
+aggregate value: max(Year) group: Number,Letter
+countpattern col: Year on: `2000`
+derive value: if(Year < 2003, 'early', 'late') group: Letter order: Letter as: 'column1'
+drop col: column1
+extract col: Number on: `{digit}`

@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import pygraphviz
 
 alllines = []
-filename = "data.txt" 
+filename = "wscript.txt" 
 file = open(filename, "r")
 for line in file:
     alllines.append(line)
@@ -33,18 +33,17 @@ def ops(line):
 
 # initialize graph
 G = nx.DiGraph()
-G.add_node("dead")
 
 # get numbered node name from column name
 def getNodeName(col):
     inCol = 0
     for node in openColumns:
         if col+"_" in node:
-            num = node.split("_")[1]
+            num = node.split("_")[-1]
             return col+"_"+str(num)
             inCol = 1  
     if inCol == 0:
-        print "create column..."
+        return col+"_0"
 
 # add node to flow, openColumns
 def appendNode(col):
@@ -125,7 +124,9 @@ def aggregate(opslist):
                 func = c[0].lower()
                 d = c[1].split(")")    
                 valueCol = func+"_"+d[0]
-                involvedNodes.append(valueCol)
+                sourceCol = d[0]
+                involvedNodes.append(getNodeName(valueCol))
+                involvedNodes.append(getNodeName(sourceCol))
 # get kept columns
         if op[0] == 'group':
             names = op[1].split(",")    
@@ -137,8 +138,9 @@ def aggregate(opslist):
                 groupCols.append(getNodeName(node))
 # add groupColumns  
     appendNode(valueCol)
-    linkNode(groupCols, [valueCol], opslist)
-    print openColumns
+    linkNode(groupCols, [getNodeName(valueCol)], opslist)
+    linkNode([getNodeName(sourceCol)], [getNodeName(valueCol)], opslist)
+# ERROR: SOURCECOL NODE IS TURNING UP BLUE
 # kill remaining columns
     for node in openColumns:
         if node not in involvedNodes:
@@ -149,10 +151,15 @@ def countpattern(opslist):
     for op in opslist:
         op = op.split(":")
         if op[0] == 'col':
-            appendNode(op[1])
+            newNode = "countPattern_"+op[1]
+            appendNode(newNode)
+            source = getNodeName(op[1])
+            dest = getNodeName(newNode)
+            linkNode([source], [dest], opslist)
 
 # derive operation
 def derive(opslist):
+    print openColumns
     groupNames = []
     for op in opslist:
         op = op.split(":")
@@ -160,6 +167,7 @@ def derive(opslist):
         if op[0] == 'as':
             columnName = op[1]
             columnName = columnName.replace("'", "")
+            columnName = columnName.replace("\n", "")
         if op[0] == 'group':
             groupNames.append(op[1])
 # get important columns    
@@ -187,7 +195,10 @@ def derive(opslist):
                 breakPattern(opslist)
 # add new column node, and link it to priors
     appendNode(columnName)
-    linkNode(groupNames,[getNodeName(columnName)], opslist)    
+    groupTitles = []
+    for name in groupNames:
+        groupTitles.append(getNodeName(name))
+    linkNode(groupTitles,[getNodeName(columnName)], opslist)    
     isIn = 0
     for node in openColumns:
         if guess+"_" in node:
@@ -196,56 +207,71 @@ def derive(opslist):
         appendNode(guess)
     linkNode([getNodeName(guess)], [getNodeName(columnName)], opslist)
 
+# drop column operation
 def drop(opslist):
     for op in opslist:
         op = op.split(":")
         if op[0] == 'col':
             columnName = op[1]
-        appendNode(columnName)
+            columnName = columnName.replace("\n", "")
+        if getNodeName(columnName) not in openColumns:
+            appendNode(columnName)
         if "dead_" not in G.nodes():
             G.add_node("dead_")
         linkNode([getNodeName(columnName)], ["dead_"], opslist)
 
+# extract operation
+def extract(opslist):
+    for op in opslist:
+        op = op.split(":")
+        if op[0] == 'col':
+# create new node from colname1
+            appendNode(op[1]+"1")
+            sourceNode = getNodeName(op[1])
+            linkNode([sourceNode], [getNodeName(op[1]+"1")], opslist)
+    
 for line in alllines:
     op = getFirst(line)
 
     if op == "aggregate":
-        print "about to aggregate"
         aggregate(ops(line))
         print "aggregated"
 
     if op == "countpattern":
-        print "about to countpattern"
         countpattern(ops(line))
         print "countpatterned"
 
     if op == "deduplicate\n":
-        print "about to deduplicate"
         breakPattern("deduplicate")
         print "deduplicated"
     
     if op == "delete":
-        print "about to delete"
         breakPattern("delete")
         print "deleted"
 
     if op == "derive":
-        print "about to derive"
         derive(ops(line))
         print "derived"
 
     if op == "drop":
-        print "about to drop"
         drop(ops(line))
         print "dropped"
 
-print "ready to draw"
-#nx.draw(G, pos=nx.fruchterman_reingold_layout(G), with_labels=True)
+    if op == "extract":
+        extract(ops(line))
+        print "extracted"
 
-nx.write_dot(G,'test.dot')
-pos=nx.graphviz_layout(G, prog='dot')
-nx.draw(G, pos, with_labels=False, arrows=False)
+colorList = []
+nodeList = []
+for node in openColumns:
+    nodeList.append(node)
+    colorList.append("red") 
+for node in G.nodes():
+    if node not in nodeList:
+        nodeList.append(node)
+        colorList.append("blue")
 
+nx.draw(G, node_color=colorList, nodelist=nodeList, pos=nx.fruchterman_reingold_layout(G), with_labels=True)
 plt.show()
 
 
