@@ -89,5 +89,22 @@ We can also pull out text data from the long, unwieldy *Description* column.
 
 Don't forget to clear the **Filter in grid** field afterwards. Now, we want to add some new information that isn't contained in this dataset. If you haven't already, download the additional dataset ([here](https://github.com/jlove29/trifacta-wrangler/blob/master/additionalData.csv)). Return to the overview of your flow, and add your new dataset into your flow (**Add Datasets** - **Import Datasets**).
 
-Now navigate back to your original dataset, and select the **join** transformation. Select the dataset you've just uploaded (probably called *additionalData*, but if you're unsure, just find the one whose source is "this flow."
+Now navigate back to your original dataset, and select the **join** transformation. 
+- Select the dataset you've just uploaded (probably called *additionalData*, but if you're unsure, just find the one whose source is "this flow." 
+- Choose **preview selected dataset**, and then **select join keys**.
+- Under **join keys** on the left, choose **edit**. It will suggest the first column, **GameId**, but click the little pencil icon and instead select *OffenseTeam*. Now, it'll show two columns, one with the teams in *OffenseTeam*, and then the same teams from *Team*. 
+- **Save** that join key. This will return us to the old view, but still show only two columns. We want to include all columns in the dataset, so we must select all of them on the left.
+- However, we don't want both *Team* and *OffenseTeam*, because they display the same information, so deselect one of them.
+- There is also the option above to select **Inner Join**, **Left Outer**, **Right Outer**, or **Full Outer**. 
+	- Inner join: only keeps rows where the join keys match in both dataset A and B
+	- Left outer join will only keep all rows from A and remove rows from B where the join key has no equivalent in A
+	- Right outer join will do the reverse
+	- Full outer join will keep all of the rows from both A and B
+- The values in *OffenseTeam* and *Team* are from a small defined set—there are no values in one column that aren't used in the other, so all of these options will provide the same result.
+- Now, you can **Add to Recipe**.
+- `join with: additionalData col: OffenseTeam = current_dataset.OffenseTeam,  Gameld = current_dataset.GameId, ...`
+- You can repeat this process with *DefenseTeam* in place of *OffenseTeam*.
+- More on the [join](https://docs.trifacta.com/display/PE/Join+Page) transformation
 
+After making any additional modifications to the dataset (find the full range of transformations [here](https://docs.trifacta.com/display/PE/Transforms)), you can generate results for the entire dataset by clicking **Generate Results**. 
+- You can choose the format to download your data, an optional method of compression, and view a summary of the dataset. 
