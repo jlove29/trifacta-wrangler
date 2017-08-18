@@ -3,6 +3,7 @@ import re
 import numpy
 import matplotlib.pyplot as plt
 import pygraphviz
+from networkx.drawing.nx_agraph import graphviz_layout
 
 alllines = []
 filename = "wscript.txt" 
@@ -100,7 +101,6 @@ def breakPattern(op):
     for node in toAdd:
         appendNode(node)
     linkNode([currentBreak], openColumns, op) 
-        
 
 # link column to dead node
 def killColumn(cols, op):
@@ -140,7 +140,6 @@ def aggregate(opslist):
     appendNode(valueCol)
     linkNode(groupCols, [getNodeName(valueCol)], opslist)
     linkNode([getNodeName(sourceCol)], [getNodeName(valueCol)], opslist)
-# ERROR: SOURCECOL NODE IS TURNING UP BLUE
 # kill remaining columns
     for node in openColumns:
         if node not in involvedNodes:
@@ -230,6 +229,36 @@ def extract(opslist):
             sourceNode = getNodeName(op[1])
             linkNode([sourceNode], [getNodeName(op[1]+"1")], opslist)
     
+# extractkv operation
+def extractkv(opslist):
+# identify source and destination
+    for op in opslist:
+        op = op.split(":")
+        if op[0] == 'col':
+            sourcecol = op[1]    
+        if op[0] == 'as':
+            destcol = op[1]
+# remove ' characters
+    destcol = destcol.replace("'", "")
+# append destination, add to open columns
+    appendNode(destcol)
+    destcolName = getNodeName(destcol)
+    openColumns.append(destcolName)
+# check if source exists, add if not
+    sourceExists = 0
+    for node in openColumns:
+        if sourcecol+"_" in node:
+            sourceExists = 1
+    if sourceExists == 0:
+        appendNode(sourcecol) 
+# get Node name of source    
+    sourcecolName = getNodeName(sourcecol)
+# add source to openColumns
+    if sourcecolName not in openColumns:
+        openColumns.append(sourcecolName)
+# link nodes
+    linkNode([sourcecolName], [destcolName], opslist) 
+
 for line in alllines:
     op = getFirst(line)
 
@@ -261,6 +290,11 @@ for line in alllines:
         extract(ops(line))
         print "extracted"
 
+    if op == "extractkv":
+        extractkv(ops(line))
+        print "extractkvd"
+
+
 colorList = []
 nodeList = []
 for node in openColumns:
@@ -271,7 +305,7 @@ for node in G.nodes():
         nodeList.append(node)
         colorList.append("blue")
 
-nx.draw(G, node_color=colorList, nodelist=nodeList, pos=nx.fruchterman_reingold_layout(G), with_labels=True)
+nx.draw(G, node_color=colorList, nodelist=nodeList, pos=graphviz_layout(G), with_labels=True)
 plt.show()
 
 
