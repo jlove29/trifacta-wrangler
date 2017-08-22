@@ -39,26 +39,26 @@ G = nx.DiGraph()
 def getNodeName(col):
     inCol = 0
     for node in openColumns:
-        if col+"_" in node:
-            num = node.split("_")[-1]
-            return col+"_"+str(num)
+        if col+"__" in node:
+            num = node.split("__")[-1]
+            return col+"__"+str(num)
             inCol = 1  
     if inCol == 0:
-        return col+"_0"
+        return col+"__0"
 
 # add node to flow, openColumns
 def appendNode(col):
     searched = 0
     for node in openColumns:
-        if col+"_" in node:
+        if col+"__" in node:
             openColumns.remove(node)
-            num = node.split("_")
-            newName = col+"_"+str(int(num[-1])+1)
+            num = node.split("__")
+            newName = col+"__"+str(int(num[-1])+1)
             openColumns.append(newName)
             G.add_node(newName)
             searched = 1
     if searched == 0:
-        newName = col+"_0"
+        newName = col+"__0"
         openColumns.append(newName)
         G.add_node(newName)
 
@@ -75,8 +75,8 @@ def linkPrev(nodeName, op):
     for node in G.nodes():
         if nodeName in node:
             allUsed.append(node)
-    prev = nodeName+"_"+str(len(allUsed)-1)
-    current = nodeName+"_"+str(len(allUsed))
+    prev = nodeName+"__"+str(len(allUsed)-1)
+    current = nodeName+"__"+str(len(allUsed))
     linkNode([prev],[current], op) 
     if prev in openColumns:
         openColumns.remove(prev)
@@ -85,28 +85,25 @@ def linkPrev(nodeName, op):
 
 # break and return new nodes
 def breakPattern(op):
-# create break node
-    allBreaks = []
-    for node in G.nodes():
-        if "break_" in node:
-            allBreaks.append(node)
-    currentBreak = "break_"+str(len(allBreaks)+1)
-    G.add_node(currentBreak)
-# link nodes to break node
+    appendNode('breakTree')
+    currentBreak = getNodeName('breakTree')
+    openColumns.remove(currentBreak)
     linkNode(openColumns, [currentBreak], op)
-    toAdd = []
-    for node in openColumns:
-        node = node.split("_")[0] 
-        toAdd.append(node)
-    for node in toAdd:
-        appendNode(node)
-    linkNode([currentBreak], openColumns, op) 
+    for node in G.nodes():
+        if node in openColumns:
+            column = node.split("__")[0]
+    # have to brute-force adding the node to avoid duplication? not sure why
+            newNode = getNodeName(column).split("__")[0]+"__"+str(int(getNodeName(column).split("__")[1])+1)
+            G.add_node(newNode)
+            openColumns.remove(node)
+            openColumns.append(newNode)
+    linkNode([currentBreak], openColumns, op)
 
 # link column to dead node
 def killColumn(cols, op):
-    if "dead_" not in G.nodes():
-        G.add_node("dead_")
-    linkNode(cols, ["dead_"], op)
+    if "dead__" not in G.nodes():
+        G.add_node("dead__")
+    linkNode(cols, ["dead__"], op)
     for node in cols:
         if node in openColumns:
             openColumns.remove(node)
@@ -200,7 +197,7 @@ def derive(opslist):
     linkNode(groupTitles,[getNodeName(columnName)], opslist)    
     isIn = 0
     for node in openColumns:
-        if guess+"_" in node:
+        if guess+"__" in node:
             isIn = 1
     if isIn == 0:
         appendNode(guess)
@@ -215,9 +212,9 @@ def drop(opslist):
             columnName = columnName.replace("\n", "")
         if getNodeName(columnName) not in openColumns:
             appendNode(columnName)
-        if "dead_" not in G.nodes():
-            G.add_node("dead_")
-        linkNode([getNodeName(columnName)], ["dead_"], opslist)
+        if "dead__" not in G.nodes():
+            G.add_node("dead__")
+        linkNode([getNodeName(columnName)], ["dead__"], opslist)
 
 # extract operation
 def extract(opslist):
@@ -227,10 +224,12 @@ def extract(opslist):
 # create new node from colname1
             appendNode(op[1]+"1")
             sourceNode = getNodeName(op[1])
+            if sourceNode not in openColumns:
+                appendNode(op[1])
             linkNode([sourceNode], [getNodeName(op[1]+"1")], opslist)
     
-# extractkv operation
-def extractkv(opslist):
+# create new branch with AS operation
+def new_as(opslist):
 # identify source and destination
     for op in opslist:
         op = op.split(":")
@@ -240,6 +239,7 @@ def extractkv(opslist):
             destcol = op[1]
 # remove ' characters
     destcol = destcol.replace("'", "")
+    destcol = destcol.replace("\n", "")
 # append destination, add to open columns
     appendNode(destcol)
     destcolName = getNodeName(destcol)
@@ -247,7 +247,7 @@ def extractkv(opslist):
 # check if source exists, add if not
     sourceExists = 0
     for node in openColumns:
-        if sourcecol+"_" in node:
+        if sourcecol+"__" in node:
             sourceExists = 1
     if sourceExists == 0:
         appendNode(sourcecol) 
@@ -259,8 +259,12 @@ def extractkv(opslist):
 # link nodes
     linkNode([sourcecolName], [destcolName], opslist) 
 
+
+
 for line in alllines:
     op = getFirst(line)
+
+    openColumns = list(set(openColumns))
 
     if op == "aggregate":
         aggregate(ops(line))
@@ -291,8 +295,16 @@ for line in alllines:
         print "extracted"
 
     if op == "extractkv":
-        extractkv(ops(line))
+        new_as(ops(line))
         print "extractkvd"
+
+    if op == "extractlist":
+        new_as(ops(line))
+        print "extracted list"
+
+    if op == "flatten":
+        breakPattern("flatten")
+        print "flattened"
 
 
 colorList = []
