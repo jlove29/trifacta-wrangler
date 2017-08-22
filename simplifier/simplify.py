@@ -71,17 +71,26 @@ def linkNode(sources, destinations, op):
 
 # link node to column
 def linkPrev(nodeName, op):
+    counter = 0
     allUsed = []
     for node in G.nodes():
         if nodeName in node:
             allUsed.append(node)
-    prev = nodeName+"__"+str(len(allUsed)-1)
-    current = nodeName+"__"+str(len(allUsed))
-    linkNode([prev],[current], op) 
-    if prev in openColumns:
-        openColumns.remove(prev)
-    if current not in openColumns:
-        openColumns.append(current)
+            counter = 1
+    if counter == 1:  
+        prev = nodeName+"__"+str(len(allUsed)-1)
+        current = nodeName+"__"+str(len(allUsed))
+        linkNode([prev],[current], op) 
+        if prev in openColumns:
+            openColumns.remove(prev)
+        if current not in openColumns:
+            openColumns.append(current)
+    if counter == 0:
+        appendNode(nodeName)
+        oldName = getNodeName(nodeName)
+        appendNode(nodeName)
+        newName = getNodeName(nodeName)
+        linkNode([oldName], [newName], op)
 
 # break and return new nodes
 def breakPattern(op):
@@ -259,6 +268,7 @@ def new_as(opslist):
 # link nodes
     linkNode([sourcecolName], [destcolName], opslist) 
 
+# merge, nest operation
 def merge(opslist):
     for op in opslist:
         op = op.split(":")
@@ -280,6 +290,7 @@ def merge(opslist):
         if node not in openColumns:
             openColumns.append(node)
 
+# rename column operation
 def rename(opslist):
     for op in opslist:
         op = op.split(":")
@@ -292,6 +303,15 @@ def rename(opslist):
     appendNode(destCol)
     killColumn([sourceColName], opslist)
     linkNode([sourceColName], [destColName], opslist)
+
+# replace, set operation
+def replace(opslist):
+    for op in opslist:
+        op = op.split(":")
+        if op[0] == 'col':
+            possibleColumns = op[1].split(",")
+        for node in possibleColumns:
+            linkPrev(node, opslist)
 
 for line in alllines:
     op = getFirst(line)
@@ -354,6 +374,13 @@ for line in alllines:
         rename(ops(line))
         print "renamed"
 
+    if op == "replace":
+        replace(ops(line))
+        print "replaced"
+
+    if op == "set":
+        replace(ops(line))
+        print "set"
 
 colorList = []
 nodeList = []

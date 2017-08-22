@@ -1,3 +1,1 @@
-extract col: Number on: `{digit}`
-merge col: Year,Number with: '-' as: 'Merge'
-rename col: Year as: 'NewYear'
+replace col: Year,Number
