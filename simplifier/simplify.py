@@ -259,7 +259,26 @@ def new_as(opslist):
 # link nodes
     linkNode([sourcecolName], [destcolName], opslist) 
 
-
+def merge(opslist):
+    for op in opslist:
+        op = op.split(":")
+        if op[0] == 'col':
+# find out which columns are relevant
+            actualColumns = []
+            possibleColumns = op[1].split(",")
+            for operand in possibleColumns:
+                if operand[0] != "'":
+                    actualColumns.append(operand) 
+        if op[0] == 'as':
+            destColumn = op[1].replace("'", "").replace("\n", "")
+    appendNode(destColumn)
+    acNames = []
+    for node in actualColumns:
+        acNames.append(getNodeName(node))
+    linkNode(acNames, [getNodeName(destColumn)], opslist)
+    for node in acNames:
+        if node not in openColumns:
+            openColumns.append(node)
 
 for line in alllines:
     op = getFirst(line)
@@ -305,6 +324,14 @@ for line in alllines:
     if op == "flatten":
         breakPattern("flatten")
         print "flattened"
+
+    if op == "keep":
+        breakPattern("keep")
+        print "kept"
+
+    if op == "merge":
+        merge(ops(line))
+        print "merged"
 
 
 colorList = []
