@@ -280,6 +280,19 @@ def merge(opslist):
         if node not in openColumns:
             openColumns.append(node)
 
+def rename(opslist):
+    for op in opslist:
+        op = op.split(":")
+        if op[0] == 'col':
+            sourceCol = op[1]
+            sourceColName = getNodeName(op[1])
+        if op[0] == 'as':
+            destCol = op[1].replace("'", "").replace("\n", "")
+            destColName = getNodeName(destCol)
+    appendNode(destCol)
+    killColumn([sourceColName], opslist)
+    linkNode([sourceColName], [destColName], opslist)
+
 for line in alllines:
     op = getFirst(line)
 
@@ -332,6 +345,14 @@ for line in alllines:
     if op == "merge":
         merge(ops(line))
         print "merged"
+
+    if op == "nest":
+        merge(ops(line))
+        print "nested"
+
+    if op == "rename":
+        rename(ops(line))
+        print "renamed"
 
 
 colorList = []
