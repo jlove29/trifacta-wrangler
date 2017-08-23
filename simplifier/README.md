@@ -5,3 +5,5 @@ Because this program takes a wrangler script as its only input, the flowchart wi
 For the same reason, it does not preserve column order, and all *move* transformations will be ignored. 
 
 *settype* transformations do not show up in the flowchart.
+
+*splitrows* transformation must be the first transform, so it is ignored in the flowchart.
