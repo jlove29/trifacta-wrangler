@@ -1,2 +1,2 @@
 rename col: Number as: Year2
-split col: Year on: `00`
+unnest col: column2 keys: 'column1.Year', 'Year2'

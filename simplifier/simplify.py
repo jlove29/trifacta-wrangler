@@ -314,9 +314,8 @@ def replace(opslist):
         for node in possibleColumns:
             linkPrev(node, opslist)
 
+# split operation
 def split(opslist):
-    print G.nodes()
-    print openColumns
     limit = 1  
 # get params from exp
     for op in opslist:
@@ -366,6 +365,36 @@ def split(opslist):
                     addedNodes.append(nodeName)
     addedNodeNames = (getNodeName(node) for node in addedNodes)
     linkNode([sourceColName], addedNodeNames, opslist) 
+
+def unnest(opslist):
+    for op in opslist:
+        op = op.split(":")
+        if op[0] == 'col':
+            sourceCol = op[1] 
+        if op[0] == 'keys':
+            keys = op[1].split(",")
+            keys = [key.replace("\n", "").replace("'", "") for key in keys]
+    keyCols = []
+    for key in keys:
+        key = key.split("[")[0]
+        if '.' in key:
+            key = key.replace(".", "_") 
+        keyCols.append(key)
+    for node in openColumns:
+        for col in keyCols:
+            occurrences = []
+            if col in node:
+                num = node.split("__")[0]
+                print num
+#### STILL NOT WORKING ##########
+                num = num.replace(col, "")
+                try:
+                    occurrences.append(int(num))
+                except ValueError:
+                    pass
+            print occurrences
+    print keyCols
+
 
 for line in alllines:
     op = getFirst(line)
@@ -443,6 +472,10 @@ for line in alllines:
     if op == "split":
         split(ops(line))
         print "split"
+
+    if op == "unnest":
+        unnest(ops(line))
+        print "unnested"
 
 colorList = []
 nodeList = []
