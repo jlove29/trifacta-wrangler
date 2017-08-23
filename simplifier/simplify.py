@@ -1,5 +1,6 @@
 import networkx as nx
 import re
+import itertools
 import numpy
 import matplotlib.pyplot as plt
 import pygraphviz
@@ -313,6 +314,59 @@ def replace(opslist):
         for node in possibleColumns:
             linkPrev(node, opslist)
 
+def split(opslist):
+    print G.nodes()
+    print openColumns
+    limit = 1  
+# get params from exp
+    for op in opslist:
+        op = op.split(":")
+        if op[0] == 'col':
+            sourceCol = op[1]
+        if op[0] == 'limit':
+            limit = int(op[1])
+    if sourceCol not in openColumns:
+        appendNode(sourceCol)
+    sourceColName = getNodeName(sourceCol)
+    openColumns.remove(sourceColName)
+# find if colname1 exists
+    combos = []
+    for node in openColumns:
+        node = node.split("__")[0]
+        node = node.replace("\n", "")
+# if contains source col string
+        if sourceCol in node:
+# if sourceCol is at beginning 
+            takeOut = node.split(sourceCol)
+            if takeOut[0] == '':
+# see if you can convert other part to int
+                try:
+                    combos.append(int(takeOut[1])) 
+                except ValueError:
+                    pass
+# start on 1        
+    if len(combos) == 0:
+        newNode = sourceCol+"0"
+        appendNode(newNode)
+        linkNode([sourceColName], [getNodeName(newNode)], opslist)
+    # start past 1
+    if len(combos) > 0:
+        count = 0
+        addedNodes = []
+        for i in itertools.count(): 
+            if count == limit+1: 
+                break
+# don't start on 0
+            if i != 0:
+# don't use existing number patterns
+                if i not in combos:
+                    nodeName = sourceCol+str(i)
+                    appendNode(nodeName)
+                    count = count+1
+                    addedNodes.append(nodeName)
+    addedNodeNames = (getNodeName(node) for node in addedNodes)
+    linkNode([sourceColName], addedNodeNames, opslist) 
+
 for line in alllines:
     op = getFirst(line)
 
@@ -381,6 +435,14 @@ for line in alllines:
     if op == "set":
         replace(ops(line))
         print "set"
+
+    if op == "sort":
+        breakPattern(ops(line))
+        print "sorted"
+
+    if op == "split":
+        split(ops(line))
+        print "split"
 
 colorList = []
 nodeList = []

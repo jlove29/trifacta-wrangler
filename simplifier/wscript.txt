@@ -1,1 +1,2 @@
-replace col: Year,Number
+rename col: Number as: Year2
+split col: Year on: `00`
