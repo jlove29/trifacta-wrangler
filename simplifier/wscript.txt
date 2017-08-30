@@ -1,2 +1,0 @@
-rename col: Number as: Year2
-unnest col: column2 keys: 'column1.Year', 'Year2'
